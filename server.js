@@ -2,8 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const bodyParser = require('body-parser');
+const jwt = require('jsonwebtoken');
 const app = express();
 const PORT = 3001;
+const SECRET_KEY = 'your-secret-key';
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -20,7 +22,8 @@ app.post('/login', (req, res) => {
         const user = users.find(u => u.username === username && u.password === password);
 
         if (user) {
-            res.json({ message: 'Login successful!' });
+            const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '1h' });
+            res.json({ message: 'Login successful!', token });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
         }
