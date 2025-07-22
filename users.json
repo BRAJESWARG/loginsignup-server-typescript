@@ -1,14 +1,22 @@
 [
-    {
-        "username": "brajeswar20",
-        "password": "Brajeswar"
-    },
-    {
-        "username": "admin",
-        "password": "admin123"
-    },
-    {
-        "username": "user",
-        "password": "user123"
-    }
+  {
+    "username": "brajeswar20",
+    "password": "Brajeswar"
+  },
+  {
+    "username": "admin",
+    "password": "admin123"
+  },
+  {
+    "username": "user",
+    "password": "user123"
+  },
+  {
+    "username": "brajeswar08",
+    "password": "Brajeswar"
+  },
+  {
+    "username": "brajeswarghosh",
+    "password": "Brajeswar"
+  }
 ]
