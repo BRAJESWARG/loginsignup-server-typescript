@@ -1,61 +1,38 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs').promises;
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-const { Client } = require('pg');
+const path = require('path');
 
 const app = express();
 const PORT = 8040;
 const SECRET_KEY = 'your-secret-key';
+const USERS_FILE = path.join(__dirname, 'users.json');
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// PostgreSQL connection
+// Utility: Read users from file
+async function getUsers() {
+    const data = await fs.readFile(USERS_FILE, 'utf8');
+    return JSON.parse(data);
+}
 
+// Utility: Save users to file
+async function saveUsers(users) {
+    await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+}
 
-require('dotenv').config();
-
-const client = new Client({
-    host: process.env.PGHOST,
-    port: process.env.PGPORT,
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-});
-
-// const client = new Client({
-//     host: 'localhost',
-//     port: 5432,
-//     user: 'brajeswar20',
-//     password: 'brajeswar20password',
-//     database: 'myappdb',
-// });
-
-client.connect()
-    .then(() => console.log('✅ Connected to PostgreSQL'))
-    .catch(err => console.error('❌ PostgreSQL connection error:', err));
-
-// Create table if not exists
-client.query(`
-    CREATE TABLE IF NOT EXISTS LoginRegister (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        password VARCHAR(100) NOT NULL
-    );
-`);
-
-// 🔐 Login
+// Login Route
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const result = await client.query(
-            'SELECT * FROM LoginRegister WHERE username = $1 AND password = $2',
-            [username, password]
-        );
+        const users = await getUsers();
+        const user = users.find(u => u.username === username && u.password === password);
 
-        if (result.rows.length === 0) {
+        if (!user) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -67,7 +44,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// 📝 Register
+// ✅ Register Route
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
 
@@ -76,21 +53,16 @@ app.post('/register', async (req, res) => {
     }
 
     try {
-        // Check if username exists
-        const existing = await client.query(
-            'SELECT * FROM LoginRegister WHERE username = $1',
-            [username]
-        );
+        const users = await getUsers();
+        const existingUser = users.find(u => u.username === username);
 
-        if (existing.rows.length > 0) {
+        if (existingUser) {
             return res.status(409).json({ message: 'Username already exists' });
         }
 
-        // Insert new user
-        await client.query(
-            'INSERT INTO LoginRegister (username, password) VALUES ($1, $2)',
-            [username, password]
-        );
+        const newUser = { username, password };
+        users.push(newUser);
+        await saveUsers(users);
 
         const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '1h' });
         return res.status(201).json({ message: 'Registration successful!', token });
